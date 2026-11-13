@@ -98,3 +98,27 @@ test('copy and background palette dialogs build scoped edit instructions',()=>{
  assert.match(palette,/装饰色用浅金色/);
  assert.match(palette,/不要改孩子的面部身份/);
 });
+
+test('focused edit dialogs submit the current design through the edit job flow',async()=>{
+ const appSource=readFileSync(path.join(root,'ui/app.js'),'utf8');
+ const start=appSource.indexOf('async function startFocusedEdit(');
+ const end=appSource.indexOf("\n$('copyDesignButton')",start);
+ assert.notEqual(start,-1,'focused edit submission should exist');
+ assert.notEqual(end,-1,'focused edit submission boundary should remain identifiable');
+ const error={textContent:''};
+ const dialog={closed:false,close(){this.closed=true}};
+ let submitted;
+ const sandbox={
+  $:id=>id==='copyDesignDialog'?dialog:id==='copyDesignError'?error:null,
+  generating:false,currentVersion:{url:'current-layout.png'},config:{model:'image-model'},photos:[],
+  saveForm(){},unlockAudio:async()=>{},blobData:async()=>null,dataImage:()=>null,
+  runJob:job=>{submitted=job}
+ };
+ vm.runInNewContext(appSource.slice(start,end)+'\nglobalThis.__startFocusedEdit=startFocusedEdit;',sandbox);
+ await sandbox.__startFocusedEdit('Replace the title','copyDesignDialog','copyDesignError');
+ assert.equal(dialog.closed,true);
+ assert.equal(submitted.kind,'edit');
+ assert.equal(submitted.image,'current-layout.png');
+ assert.equal(submitted.instruction,'Replace the title');
+ assert.equal(submitted.config.model,'image-model');
+});
