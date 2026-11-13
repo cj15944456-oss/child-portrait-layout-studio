@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath,pathToFileURL} from 'node:url';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const root=process.env.PROJECT_ROOT||path.resolve(here,'..');
 const providerSource=readFileSync(path.join(root,'ui/provider.js'),'utf8');
-const provider=await import('data:text/javascript;base64,'+Buffer.from(providerSource).toString('base64'));
+const provider=await import(pathToFileURL(path.join(root,'ui/provider.js')).href);
 const designSource=readFileSync(path.join(root,'ui/design-edits.js'),'utf8');
 const designEdits=await import('data:text/javascript;base64,'+Buffer.from(designSource).toString('base64'));
 
@@ -123,7 +123,7 @@ test('focused edit dialogs submit the current design through the edit job flow',
  assert.equal(submitted.config.model,'image-model');
 });
 
-test('brush control is visible and warns when the selected API cannot accept masks',()=>{
+test('brush selection is enabled for both coordinate-capable API protocols',()=>{
  const appSource=readFileSync(path.join(root,'ui/app.js'),'utf8');
  const start=appSource.indexOf('function setBrush(on){');
  const end=appSource.indexOf('\nfunction setZoom',start);
@@ -137,12 +137,26 @@ test('brush control is visible and warns when the selected API cannot accept mas
  const sandbox={brushMode:false,$:id=>elements.get(id),drawSelection:()=>{}};
  vm.runInNewContext(appSource.slice(start,end)+'\nglobalThis.__setBrush=setBrush;',sandbox);
  sandbox.__setBrush(true);
- assert.equal(sandbox.brushMode,false);
- assert.match(elements.get('editorError').textContent,/不支持涂抹蒙版/);
+ assert.equal(sandbox.brushMode,true);
+ assert.equal(elements.get('editorError').textContent,'');
  elements.get('protocol').value='edits';
  sandbox.__setBrush(true);
  assert.equal(sandbox.brushMode,true);
  assert.equal(elements.get('brushToolForm').attributes['aria-pressed'],'true');
  assert.equal(elements.get('brushToolForm').textContent,'正在涂抹 · 点击结束');
  assert.equal(elements.get('editStage').classes.has('selecting'),true);
+});
+
+
+for(const scenario of ['composite failure','cancel after model response'])test('region job preserves history on '+scenario,async()=>{
+ const app=readFileSync(path.join(root,'ui/app.js'),'utf8'),start=app.indexOf('async function runJob(job){'),end=app.indexOf("\n$('cancelTask')",start);let saved=0,composed=0;
+ const el=()=>({textContent:'',className:'',classList:{add(){},remove(){}}});const elements=new Map();const sandbox={
+  $:id=>{if(!elements.has(id))elements.set(id,el());return elements.get(id)},document:{title:'workbench',hidden:false},generating:false,controller:null,originalTitle:'workbench',
+  unlockAudio:async()=>{},historyReady:Promise.resolve(),AbortController,setInterval:()=>1,clearInterval(){},lockTask(){},updateElapsed(){},changeStage(){},completeFeedback(){},
+  prepareRegionEdit:async()=>({image:'cropped',plan:{width:20,height:20}}),
+  editImage:async(config,image,instruction,identities,options)=>{assert.equal(image,'cropped');assert.equal(identities.length,0);assert.equal(options.mask,undefined);assert.equal(options.region.width,20);if(scenario.startsWith('cancel'))sandbox.controller.abort();return 'provider-output'},
+  composeRegionEdit:async()=>{composed++;throw Error('returned aspect ratio invalid')},addVersion:async()=>{saved++}
+ };
+ vm.runInNewContext(app.slice(start,end)+'\nglobalThis.run=runJob;',sandbox);await sandbox.run({kind:'edit',mask:'local-mask',image:'source',instruction:'remove',config:{},identities:['identity']});
+ assert.equal(saved,0);assert.equal(sandbox.generating,false);assert.equal(composed,scenario.startsWith('cancel')?0:1);
 });

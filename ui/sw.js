@@ -1,9 +1,10 @@
-const CACHE_NAME = "portrait-studio-shell-v2";
+const CACHE_NAME = "portrait-studio-shell-v3-region";
 const SHELL = [
   "./",
   "./index.html",
   "./app.js",
   "./provider.js",
+  "./region-edit.js",
   "./design-edits.js",
   "./history.js",
   "./manifest.webmanifest",

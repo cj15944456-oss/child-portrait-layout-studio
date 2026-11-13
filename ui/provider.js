@@ -1,3 +1,4 @@
+import {buildRegionPrompt} from './region-edit.js';
 export function normalizeConfig(c){let baseUrl=String(c.baseUrl||'').trim().replace(/^export\s+OPENAI_BASE_URL\s*=\s*/i,'').replace(/^["']|["']$/g,'');let key=String(c.key||'').trim().replace(/^export\s+OPENAI_API_KEY\s*=\s*/i,'').replace(/^Bearer\s+/i,'').replace(/^["']|["']$/g,'').trim();let u;try{u=new URL(baseUrl)}catch{throw new Error('请输入完整的 Base URL，例如 https://你的服务/v1。')}if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash)throw new Error('Base URL 需使用 HTTPS，不要在地址里填写 Key。');u.pathname=u.pathname.replace(/\/(models|images\/edits|chat\/completions)\/?$/,'').replace(/\/+$/,'');baseUrl=u.toString().replace(/\/$/,'');if(!key)throw new Error('Key 输入框为空，请填写第三方服务 Key。');return {...c,baseUrl,key,model:String(c.model||'').trim()}}
 function redact(value,key){return String(value||'').split(key).join('[密钥已隐藏]').slice(0,600)}
 async function call(url,opts,key,timeout=180000){const timeoutSignal=AbortSignal.timeout(timeout);const signal=opts.signal?AbortSignal.any([opts.signal,timeoutSignal]):timeoutSignal;let r;try{r=await fetch(url,{...opts,mode:'cors',credentials:'omit',redirect:'error',signal})}catch(e){if(opts.signal?.aborted)throw new DOMException('已停止等待','AbortError');throw new Error(e.name==='TimeoutError'?'第三方服务响应超时。':'浏览器无法直接连接第三方服务。请检查服务地址、网络和服务端 CORS；页面不会改用后端转发。')}let data;try{data=await r.json()}catch{throw new Error('第三方服务未返回 JSON（HTTP '+r.status+'），请检查 Base URL。')}if(!r.ok)throw new Error('第三方服务返回 HTTP '+r.status+'：'+redact(data.error?.message||data.message||JSON.stringify(data.error)||'请求失败',key));return data}
@@ -7,12 +8,10 @@ export function extractImage(data){const item=data.data?.find?.(x=>x.b64_json||x
 async function sendImageRequest(input,images,prompt,options={}){
  const c=normalizeConfig(input);if(!c.model)throw new Error('请选择或填写 Model。');if(!images.length)throw new Error('请先上传孩子照片。');options.signal?.throwIfAborted();let response;
  if(c.protocol==='chat'){
-  if(options.mask)throw new Error('当前聊天接口不支持蒙版编辑，请在服务配置选择图像编辑接口，或清除涂选后修改整图。');
   options.onStage?.('waiting');response=await call(c.baseUrl+'/chat/completions',{method:'POST',signal:options.signal,headers:{Authorization:'Bearer '+c.key,'Content-Type':'application/json'},body:JSON.stringify({model:c.model,stream:false,messages:[{role:'user',content:[{type:'text',text:prompt},...images.map(url=>({type:'image_url',image_url:{url}}))]}]})},c.key,300000);
  }else{
-  const form=new FormData();form.set('model',c.model);form.set('prompt',prompt);form.set('n','1');
-  for(const [i,url] of images.entries()){const blob=await(await fetch(url,{signal:options.signal})).blob();form.append('image[]',blob,'reference-'+(i+1)+(blob.type==='image/png'?'.png':'.jpg'))}
-  if(options.mask){const blob=await(await fetch(options.mask,{signal:options.signal})).blob();form.append('mask',blob,'selection-mask.png')}
+  const form=new FormData();form.set('model',c.model);form.set('prompt',prompt);form.set('n','1');if(options.region){form.set('background','opaque');form.set('output_format','png')}
+  for(const [i,url] of images.entries()){const blob=await(await fetch(url,{signal:options.signal})).blob();form.append(options.region?'image':'image[]',blob,'reference-'+(i+1)+(blob.type==='image/png'?'.png':'.jpg'))}
   options.onStage?.('waiting');response=await call(c.baseUrl+'/images/edits',{method:'POST',signal:options.signal,headers:{Authorization:'Bearer '+c.key},body:form},c.key,300000);
  }
  const image=extractImage(response);if(!image)throw new Error('该模型未返回图片，请确认模型和生图接口支持参考图生成。');if(!/^data:image\/(png|jpeg|webp);base64,/.test(image)&&!/^https:\/\//.test(image))throw new Error('服务返回的图片地址格式不受支持。');return image;
@@ -36,6 +35,8 @@ export function generateImage(input,images,reference,options={}){
 }
 export function editImage(input,image,instruction,identities=[],options={}){
  if(!instruction.trim())throw new Error('请描述想修改的内容。');
- const prompt='编辑第一张特色版成品。用户要求：'+instruction+'。'+(options.mask?'只修改蒙版透明区域中的内容，保持未涂选区域、构图、人物和文字尽量不变。':'保持未被要求修改的内容、布局与人物身份不变。')+'后续图片如有，均为同一个孩子的真实身份参考。无论用户要求修改哪个区域，孩子脸部身份优先保留：维持原图脸型轮廓、眉眼形状与间距、眼型、鼻梁与鼻头、嘴唇、耳朵、肤色及年龄特征；不得换脸、混入其他孩子面孔、磨皮瘦脸、放大双眼或重塑五官。输出一张完整修改后的图片，不要附带说明。';
+ if(options.mask)throw new Error('请先准备本地选区，再通过坐标提交局部编辑。');
+ if(options.region)return sendImageRequest(input,[image],buildRegionPrompt(instruction,options.region),options);
+ const prompt='编辑第一张特色版成品。本次用户要求：'+instruction+'。保持未被要求修改的内容和布局不变。后续图片如有，为孩子的真实身份参考。身份保留仅适用于最终保留的人物：保持脸部特征、肤色与年龄，不换脸、不重塑五官。若要求删除人物，不保留或重建被删除对象；若要求换衣、改色或姿势，允许指定内容改变。输出一张完整修改后的图片，不要附带说明。';
  return sendImageRequest(input,[image,...identities],prompt,options);
 }
