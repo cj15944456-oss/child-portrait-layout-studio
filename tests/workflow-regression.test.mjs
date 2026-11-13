@@ -9,6 +9,8 @@ const here=path.dirname(fileURLToPath(import.meta.url));
 const root=process.env.PROJECT_ROOT||path.resolve(here,'..');
 const providerSource=readFileSync(path.join(root,'ui/provider.js'),'utf8');
 const provider=await import('data:text/javascript;base64,'+Buffer.from(providerSource).toString('base64'));
+const designSource=readFileSync(path.join(root,'ui/design-edits.js'),'utf8');
+const designEdits=await import('data:text/javascript;base64,'+Buffer.from(designSource).toString('base64'));
 
 test('layout generation sends child, layout, and selected migration references directly to the gateway',async()=>{
  const originalFetch=globalThis.fetch;
@@ -77,4 +79,22 @@ test('generation task reaches the provider without depending on a nonexistent bu
  assert.equal(calls[0][2],job.reference);
  assert.equal(calls[0][3].transferReference,job.transferReference);
  assert.deepEqual(Array.from(calls[0][3].transferCategories),job.transferCategories);
+});
+
+test('copy and background palette dialogs build scoped edit instructions',()=>{
+ const html=readFileSync(path.join(root,'ui/index.html'),'utf8');
+ const sw=readFileSync(path.join(root,'ui/sw.js'),'utf8');
+ for(const id of ['copyDesignDialog','designHeadline','designSubline','paletteDesignDialog','backgroundColor','paletteMood']){
+  assert.ok(html.includes('id="'+id+'"'));
+ }
+ assert.match(sw,/\.\/design-edits\.js/);
+ const copy=designEdits.buildCopyInstruction({headline:'初见星河',subline:'满月纪念',notes:'保留原字体位置'});
+ assert.match(copy,/主标题逐字替换为「初见星河」/);
+ assert.match(copy,/副标题或落款逐字替换为「满月纪念」/);
+ assert.match(copy,/不要改孩子的面部身份/);
+ const palette=designEdits.buildPaletteInstruction({color:'#DEE8F0',colorName:'雾霾蓝',mood:'清新通透',notes:'装饰色用浅金色'});
+ assert.match(palette,/雾霾蓝（#DEE8F0）/);
+ assert.match(palette,/整体配色氛围为清新通透/);
+ assert.match(palette,/装饰色用浅金色/);
+ assert.match(palette,/不要改孩子的面部身份/);
 });

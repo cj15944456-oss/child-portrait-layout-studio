@@ -185,6 +185,22 @@
     .brush-control input{width:105px;accent-color:#637f52}
     .editor-form p{font-size:9px;color:#879187;line-height:1.65}
     .editor-form .error{color:#a25545}
+    .focus-dialog{width:min(500px,92vw);max-height:88vh;overflow:auto}
+    .focus-form{padding:15px 18px 18px}
+    .focus-form label{display:block;margin:12px 0 5px;color:#566458;font-size:10px;font-weight:550}
+    .focus-form input[type=text],.focus-form textarea,.focus-form select{width:100%;min-height:36px;padding:8px 10px;border:1px solid #dfe4dd;border-radius:7px;background:#fff;color:#334337;font-size:11px}
+    .focus-form textarea{min-height:68px;resize:vertical;line-height:1.6}
+    .focus-note{margin:8px 0;color:#899289;font-size:9px;line-height:1.65}
+    .dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+    .dialog-actions button{min-height:34px;padding:0 13px;border:1px solid #dce4da;border-radius:7px;background:#f3f6f2;color:#536653;font-size:10px}
+    .dialog-actions .primary-action{border-color:var(--green);background:var(--green);color:#fff}
+    .palette-swatches{display:flex;flex-wrap:wrap;gap:7px}
+    .palette-swatch{min-height:33px;padding:4px 8px;display:flex;align-items:center;gap:6px;border:1px solid #e2e7e0;border-radius:7px;background:#fff;color:#5d6a5e;font-size:9px}
+    .palette-swatch[aria-pressed=true]{border-color:#668666;box-shadow:0 0 0 1px #668666}
+    .palette-dot{width:18px;height:18px;border:1px solid #00000012;border-radius:50%;background:var(--swatch-color)}
+    .color-picker-row{display:flex;align-items:center;gap:9px;margin-top:9px;color:#748174;font-size:9px}
+    .color-picker-row input[type=color]{width:36px;height:30px;padding:2px;border:1px solid #dfe4dd;border-radius:6px;background:#fff}
+    .result-actions button.special-action{background:#416b4a;border-color:#ffffff80}
     .toast{position:fixed;left:50%;bottom:22px;z-index:10;max-width:calc(100vw - 32px);padding:10px 15px;border:1px solid #ffffff24;border-radius:8px;background:#26382beF;color:white;box-shadow:0 7px 24px #23352826;font-size:11px;transform:translateX(-50%)}
     .toast.hidden{display:none!important}
     @keyframes waiting{from{transform:translateX(-100%)}to{transform:translateX(390%)}}
@@ -294,7 +310,7 @@
           <div class="canvas-toolbar"><strong id="resultTitle">生成结果</strong><span>检查人物五官与动作后再交付</span></div>
           <div class="canvas-frame">
             <button id="openEditor" class="result-frame" aria-label="放大或编辑特色版"><img id="result" class="result" alt="AI 生成的儿童特色版"></button>
-            <div class="result-actions"><button id="editButton" type="button">编辑</button><a id="saveImage" download="儿童特色版.png">下载</a></div>
+            <div class="result-actions"><button id="copyDesignButton" class="special-action" type="button">改文案</button><button id="paletteDesignButton" class="special-action" type="button">调配色</button><button id="editButton" type="button">精细编辑</button><a id="saveImage" download="儿童特色版.png">下载</a></div>
           </div>
         </div>
       </div>
@@ -324,6 +340,38 @@
     <div class="editor-picture"><div class="editor-tools"><button id="viewTool" class="active">查看</button><button id="brushTool">涂选区域</button><button id="undoStroke" aria-label="撤销上一次涂选">撤销</button><button id="clearStroke">清除</button><div class="zoom-tools"><button id="zoomOut" aria-label="缩小图片">−</button><span id="zoomLabel">100%</span><button id="zoomIn" aria-label="放大图片">＋</button></div></div><div class="edit-viewport" id="editViewport"><div class="edit-stage" id="editStage"><img id="editBase" alt="正在编辑的特色版"><canvas id="selectionCanvas" aria-label="在图片上拖动涂选需要修改的区域"></canvas></div></div></div>
     <div class="editor-form"><label class="field-title" for="editInstruction">修改要求</label><textarea id="editInstruction" rows="5" placeholder="例如：把右下角孩子的动作改为坐姿，其他部分保持不变。"></textarea><div class="brush-control"><label for="brushSize">涂选笔大小</label><input id="brushSize" type="range" min="12" max="100" value="40"></div><p id="selectionHint">未涂选时，按文字要求修改整张图片。</p><button id="submitEdit" class="save">生成修改版</button><p>修改会生成新版本，原图会保留。请检查其他区域。</p><p id="editorError" class="error" role="status"></p></div>
   </div></dialog>
+  <dialog id="copyDesignDialog" class="focus-dialog" aria-labelledby="copyDesignTitle">
+    <div class="dialog-head"><h2 id="copyDesignTitle">修改设计文案<small>仅替换你填写的文字</small></h2><button class="close" id="copyDesignClose" aria-label="关闭文案修改">×</button></div>
+    <div class="focus-form">
+      <label for="designHeadline">主标题</label><input id="designHeadline" type="text" maxlength="50" placeholder="例如：小小的你，温柔了时光">
+      <label for="designSubline">副标题 / 落款</label><input id="designSubline" type="text" maxlength="70" placeholder="例如：满月纪念 · 2026">
+      <label for="designCopyNotes">其他文案要求</label><textarea id="designCopyNotes" rows="3" placeholder="例如：删除日期，保留原来的字体风格和位置。"></textarea>
+      <p class="focus-note">留空的文字会尽量保留原样；需要去掉某段文字时，请在要求里说明。AI 生成中文后请检查错字。</p>
+      <div class="dialog-actions"><button id="copyDesignCancel" type="button">取消</button><button id="copyDesignApply" class="primary-action" type="button">生成文案版</button></div>
+      <p id="copyDesignError" class="error" role="status"></p>
+    </div>
+  </dialog>
+  <dialog id="paletteDesignDialog" class="focus-dialog" aria-labelledby="paletteDesignTitle">
+    <div class="dialog-head"><h2 id="paletteDesignTitle">调整背景配色<small>只调整背景与装饰配色</small></h2><button class="close" id="paletteDesignClose" aria-label="关闭背景配色">×</button></div>
+    <div class="focus-form">
+      <div class="field-title">背景底色</div>
+      <div class="palette-swatches" id="paletteSwatches" role="group" aria-label="选择背景底色">
+        <button class="palette-swatch" type="button" data-name="奶油米" data-color="#F2E9D9" aria-pressed="true"><span class="palette-dot" style="--swatch-color:#F2E9D9"></span>奶油米</button>
+        <button class="palette-swatch" type="button" data-name="雾霾蓝" data-color="#DEE8F0" aria-pressed="false"><span class="palette-dot" style="--swatch-color:#DEE8F0"></span>雾霾蓝</button>
+        <button class="palette-swatch" type="button" data-name="杏粉" data-color="#F4DDD4" aria-pressed="false"><span class="palette-dot" style="--swatch-color:#F4DDD4"></span>杏粉</button>
+        <button class="palette-swatch" type="button" data-name="鼠尾草绿" data-color="#DDE7DC" aria-pressed="false"><span class="palette-dot" style="--swatch-color:#DDE7DC"></span>鼠尾草绿</button>
+        <button class="palette-swatch" type="button" data-name="淡紫灰" data-color="#E8E3EE" aria-pressed="false"><span class="palette-dot" style="--swatch-color:#E8E3EE"></span>淡紫灰</button>
+        <button class="palette-swatch" type="button" data-name="柔白" data-color="#F7F6F1" aria-pressed="false"><span class="palette-dot" style="--swatch-color:#F7F6F1"></span>柔白</button>
+      </div>
+      <div class="color-picker-row"><label for="backgroundColor">自定义底色</label><input id="backgroundColor" type="color" value="#F2E9D9"><span id="backgroundColorLabel">奶油米 · #F2E9D9</span></div>
+      <label for="paletteMood">整体配色氛围</label>
+      <select id="paletteMood"><option>奶油柔和</option><option>清新通透</option><option>暖调复古</option><option>低饱和电影感</option><option>明亮童趣</option></select>
+      <label for="paletteNotes">补充要求</label><textarea id="paletteNotes" rows="3" placeholder="例如：装饰色用浅金色，背景保持干净有层次。"></textarea>
+      <p class="focus-note">只要求 AI 调整背景底色和配色，人物身份、服装、动作和文案保持不变。生成后请检查边缘与细节。</p>
+      <div class="dialog-actions"><button id="paletteDesignCancel" type="button">取消</button><button id="paletteDesignApply" class="primary-action" type="button">生成配色版</button></div>
+      <p id="paletteDesignError" class="error" role="status"></p>
+    </div>
+  </dialog>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <script type="module" src="./app.js"></script>
 </body>
