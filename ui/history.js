@@ -1,0 +1,6 @@
+// Only generated images and version metadata are stored. Never credentials or identity inputs.
+export const MAX_VERSIONS=5;
+let opening;
+function database(){if(!opening)opening=new Promise((resolve,reject)=>{if(!globalThis.indexedDB){reject(new Error('本地历史不可用'));return}const request=indexedDB.open('portrait-results',1);request.onupgradeneeded=()=>request.result.createObjectStore('versions',{keyPath:'id'});request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});return opening}
+export async function loadHistory(){const db=await database();return new Promise((resolve,reject)=>{const tx=db.transaction('versions','readonly'),r=tx.objectStore('versions').getAll();r.onsuccess=()=>resolve(r.result.sort((a,b)=>b.created-a.created||b.number-a.number).slice(0,MAX_VERSIONS));r.onerror=()=>reject(r.error)})}
+export async function saveHistory(versions){const db=await database();return new Promise((resolve,reject)=>{const tx=db.transaction('versions','readwrite'),store=tx.objectStore('versions');store.clear();for(const v of versions.filter(x=>x.blob).slice(0,MAX_VERSIONS))store.put({id:v.id,number:v.number,created:v.created,kind:v.kind,blob:v.blob});tx.oncomplete=()=>resolve();tx.onabort=tx.onerror=()=>reject(tx.error)})}
