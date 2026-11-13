@@ -84,7 +84,7 @@ test('generation task reaches the provider without depending on a nonexistent bu
 test('copy and background palette dialogs build scoped edit instructions',()=>{
  const html=readFileSync(path.join(root,'ui/index.html'),'utf8');
  const sw=readFileSync(path.join(root,'ui/sw.js'),'utf8');
- for(const id of ['copyDesignDialog','designHeadline','designSubline','paletteDesignDialog','backgroundColor','paletteMood']){
+ for(const id of ['copyDesignDialog','designHeadline','designSubline','paletteDesignDialog','backgroundColor','paletteMood','brushToolForm']){
   assert.ok(html.includes('id="'+id+'"'));
  }
  assert.match(sw,/\.\/design-edits\.js/);
@@ -121,4 +121,28 @@ test('focused edit dialogs submit the current design through the edit job flow',
  assert.equal(submitted.image,'current-layout.png');
  assert.equal(submitted.instruction,'Replace the title');
  assert.equal(submitted.config.model,'image-model');
+});
+
+test('brush control is visible and warns when the selected API cannot accept masks',()=>{
+ const appSource=readFileSync(path.join(root,'ui/app.js'),'utf8');
+ const start=appSource.indexOf('function setBrush(on){');
+ const end=appSource.indexOf('\nfunction setZoom',start);
+ assert.notEqual(start,-1,'brush control should exist in the app source');
+ assert.notEqual(end,-1,'brush control boundary should remain identifiable');
+ const makeElement=value=>{const classes=new Set(),element={value,textContent:'',attributes:{},classes};element.classList={toggle:(name,on)=>on?classes.add(name):classes.delete(name),add:name=>classes.add(name),remove:name=>classes.delete(name)};element.setAttribute=(name,value)=>{element.attributes[name]=value};return element};
+ const elements=new Map([
+  ['protocol',makeElement('chat')],['editorError',makeElement()],
+  ['editStage',makeElement()],['viewTool',makeElement()],['brushTool',makeElement()],['brushToolForm',makeElement()]
+ ]);
+ const sandbox={brushMode:false,$:id=>elements.get(id),drawSelection:()=>{}};
+ vm.runInNewContext(appSource.slice(start,end)+'\nglobalThis.__setBrush=setBrush;',sandbox);
+ sandbox.__setBrush(true);
+ assert.equal(sandbox.brushMode,false);
+ assert.match(elements.get('editorError').textContent,/不支持涂抹蒙版/);
+ elements.get('protocol').value='edits';
+ sandbox.__setBrush(true);
+ assert.equal(sandbox.brushMode,true);
+ assert.equal(elements.get('brushToolForm').attributes['aria-pressed'],'true');
+ assert.equal(elements.get('brushToolForm').textContent,'正在涂抹 · 点击结束');
+ assert.equal(elements.get('editStage').classes.has('selecting'),true);
 });
