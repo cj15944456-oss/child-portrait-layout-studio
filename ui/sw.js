@@ -1,4 +1,4 @@
-const CACHE_NAME = "portrait-studio-shell-v1";
+const CACHE_NAME = "portrait-studio-shell-v2";
 const SHELL = [
   "./",
   "./index.html",

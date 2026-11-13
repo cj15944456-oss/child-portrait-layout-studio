@@ -18,6 +18,18 @@ async function sendImageRequest(input,images,prompt,options={}){
  const image=extractImage(response);if(!image)throw new Error('该模型未返回图片，请确认模型和生图接口支持参考图生成。');if(!/^data:image\/(png|jpeg|webp);base64,/.test(image)&&!/^https:\/\//.test(image))throw new Error('服务返回的图片地址格式不受支持。');return image;
 }
 export function generateImage(input,images,reference,options={}){return sendImageRequest(input,[...images,reference],PROMPT,options)}
+const TRANSFER_DETAILS={
+ clothing:'服装迁移：只迁移参考图服装的款式、版型、面料、颜色与层次，穿到原图人物身上；保持原图人物的身体比例和姿势。',
+ styling:'造型迁移：迁移参考图的发型、发饰和适龄配件；不要改变人物年龄、脸部比例或五官，配件不得遮挡面部。',
+ lighting:'光影迁移：参考主光方向、光线软硬、色温、明暗层次与环境反光，让人物和背景的光线一致。',
+ background:'背景迁移：把原图背景替换为参考图的场景、布景和景深氛围；保留人物姿势和主体构图，接地阴影自然。'
+};
+export function transferImage(input,original,reference,categories=[],identities=[],options={}){
+ const selected=[...new Set(categories)].filter(kind=>TRANSFER_DETAILS[kind]);
+ if(!selected.length)throw new Error('请至少选择一个迁移项目。');
+ const prompt='对第一张图片进行单张儿童人像定向编辑，不要制作拼版或海报。图片顺序：第一张是需要修改的原图；第二张只作为服装、造型、光影或背景的视觉参考；第三张起是同一个孩子的身份辅助照片，只用于辨认人物，不用于迁移造型。\n\n只执行以下勾选项目：\n'+selected.map(kind=>TRANSFER_DETAILS[kind]).join('\n')+'\n\n保护人物身份是最高优先级：保持原图孩子的脸型、眼睛、鼻子、嘴型、耳朵、肤色、年龄特征和可辨识身份，不换脸、不混入参考图人物、不磨皮瘦脸、不改变表情。未勾选的项目保持原图状态；除勾选项目外，尽量保持原图的姿势、构图、景别和人物比例不变。生成真实儿童摄影质感的完整照片，边缘、手部、衣物结构和光线自然，不添加文字、拼版、水印或其他人物。';
+ return sendImageRequest(input,[original,reference,...identities],prompt,options);
+}
 export function editImage(input,image,instruction,identities=[],options={}){
  if(!instruction.trim())throw new Error('请描述想修改的内容。');
  const prompt='编辑第一张特色版成品。用户要求：'+instruction+'。'+(options.mask?'只修改蒙版透明区域中的内容，保持未涂选区域、构图、人物和文字尽量不变。':'保持未被要求修改的内容、布局与人物身份不变。')+'后续图片如有，均为同一个孩子的真实身份参考。无论用户要求修改哪个区域，孩子脸部身份优先保留：维持原图脸型轮廓、眉眼形状与间距、眼型、鼻梁与鼻头、嘴唇、耳朵、肤色及年龄特征；不得换脸、混入其他孩子面孔、磨皮瘦脸、放大双眼或重塑五官。输出一张完整修改后的图片，不要附带说明。';

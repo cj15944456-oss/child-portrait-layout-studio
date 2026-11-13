@@ -23,7 +23,7 @@
     button:disabled{cursor:not-allowed;opacity:.55}
     :focus-visible{outline:3px solid #9db69f;outline-offset:2px}
     .app-shell{min-height:100dvh;display:grid;grid-template-columns:286px minmax(0,1fr)}
-    .controls{position:relative;min-height:100dvh;padding:22px 18px 16px;background:var(--sidebar);border-right:1px solid #e3e6e1;display:flex;flex-direction:column;gap:23px}
+    .controls{position:relative;min-height:100dvh;padding:22px 18px 16px;background:var(--sidebar);border-right:1px solid #e3e6e1;display:flex;flex-direction:column;gap:23px;overflow-y:auto}
     .app-brand{height:38px;display:flex;align-items:center;gap:10px;padding:0 3px}
     .app-mark{width:31px;height:31px;flex:none;display:grid;place-items:center;border-radius:9px;background:#e8efe7;color:#416b4a}
     .app-mark svg{width:19px;height:19px}
@@ -56,6 +56,28 @@
     .style-copy strong{font-size:11px;font-weight:550;color:#38483b}
     .style-copy span{font-size:10px;color:#8b938b}
     .style-chevron{margin-left:auto;color:#8a958a;font-size:17px;padding:0 3px}
+    .mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;border:1px solid var(--line);border-radius:8px;background:#f0f2ef}
+    .mode-option{min-height:32px;border:0;border-radius:6px;background:transparent;color:#758075;font-size:10px}
+    .mode-option.active{background:#fff;color:#3d6043;box-shadow:0 1px 4px #25362912;font-weight:560}
+    .transfer-upload{min-height:55px;padding:8px 10px;display:flex;align-items:center;gap:9px;border:1px dashed #c8d1c7;border-radius:9px;background:#fff;cursor:pointer;transition:border-color .18s,background .18s}
+    .transfer-upload:hover{border-color:#668a68;background:#f6f9f5}
+    .transfer-upload .upload-icon{width:26px;height:26px;flex:none;margin:0}
+    .transfer-upload-copy{min-width:0;display:grid;gap:2px}
+    .transfer-upload-copy b{font-size:10px;font-weight:550}
+    .transfer-upload-copy small{font-size:9px;color:#929a92}
+    .transfer-preview{position:relative;display:flex;align-items:center;gap:8px;padding:6px;border:1px solid var(--line);border-radius:8px;background:#fff}
+    .transfer-preview.hidden{display:none!important}
+    .transfer-preview img{display:block;width:58px;height:52px;flex:none;object-fit:cover;border-radius:5px;background:#f1f2ef}
+    .transfer-preview-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#536453;font-size:10px}
+    .transfer-preview button{width:23px;height:23px;flex:none;margin-left:auto;padding:0;border:1px solid #e6e9e4;border-radius:6px;background:#fff;color:#768077;font-size:15px;line-height:20px}
+    .transfer-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+    .transfer-option{min-width:0;min-height:45px;padding:7px;border:1px solid var(--line);border-radius:7px;background:#fff;display:flex;align-items:flex-start;gap:6px;cursor:pointer}
+    .transfer-option:has(input:checked){border-color:#9eaf9c;background:#f6f9f5}
+    .transfer-option input{width:12px;height:12px;margin:1px 0 0;flex:none;accent-color:var(--green)}
+    .transfer-option-copy{min-width:0;display:grid;gap:1px}
+    .transfer-option-copy b{font-size:10px;font-weight:560}
+    .transfer-option-copy small{font-size:8px;color:var(--muted);line-height:1.35}
+    .transfer-note{margin:0;color:#899289;font-size:9px;line-height:1.5}
     .generate{width:100%;height:42px;margin-top:2px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid #dce3da;border-radius:8px;background:#e7ebe5;color:#829082;font-weight:570;font-size:12px}
     .generate.ready{border-color:var(--green);background:var(--green);color:#fff;box-shadow:0 3px 9px #315b3e20}
     .generate.ready:hover{background:var(--green-strong)}
@@ -101,6 +123,10 @@
     .canvas-frame{width:min(1040px,100%);aspect-ratio:2/1;margin:0 auto;position:relative;display:grid;place-items:center;overflow:hidden;border:1px solid #e0e4df;border-radius:9px;background:#e9ebe8;box-shadow:0 10px 32px #2334260a}
     .example{display:block;width:100%;height:100%;object-fit:contain}
     .canvas-hint{position:absolute;left:11px;bottom:10px;padding:5px 8px;border:1px solid #ffffffaa;border-radius:5px;background:#fffffff0;color:#737d74;font-size:9px;backdrop-filter:blur(8px)}
+    .reference-empty{position:absolute;inset:0;display:grid;place-content:center;gap:6px;text-align:center;color:#778278;pointer-events:none}
+    .reference-empty.hidden{display:none!important}
+    .reference-empty strong{font-size:12px;font-weight:560;color:#536453}
+    .reference-empty small{font-size:10px;color:#929a92}
     .result-frame{width:100%;height:100%;padding:0;border:0;background:transparent;display:grid;place-items:center;cursor:zoom-in}
     .result{display:block;max-width:100%;max-height:100%;object-fit:contain}
     .result-actions{position:absolute;right:10px;bottom:10px;display:flex;gap:6px;opacity:0;transition:opacity .16s}
@@ -170,6 +196,7 @@
     .toast.hidden{display:none!important}
     @keyframes waiting{from{transform:translateX(-100%)}to{transform:translateX(390%)}}
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+    @media(max-width:680px){.controls{overflow:visible}.app-brand,#modeSection,#migrationControls,#styleSection{grid-column:1/-1}.transfer-preview img{width:50px;height:44px}}
     @media(max-width:850px){.app-shell{grid-template-columns:250px minmax(0,1fr)}.controls{padding:18px 14px}.workspace{padding:0 17px 15px}.canvas-frame{aspect-ratio:1.7/1}.gallery{grid-template-columns:repeat(3,minmax(0,1fr))}}
     @media(max-width:680px){.app-shell{grid-template-columns:1fr}.controls{min-height:auto;padding:13px 14px 12px;border-right:0;border-bottom:1px solid #e3e6e1;display:grid;grid-template-columns:1fr 1fr;gap:10px 11px}.app-brand{grid-column:1/-1;height:29px}.app-mark{width:26px;height:26px}.app-mark svg{width:16px;height:16px}.sidebar-group{gap:6px}.section-head{height:16px}.upload{min-height:73px;padding:9px}.upload-icon{width:22px;height:22px;margin-bottom:4px}.upload b{font-size:10px}.upload small{font-size:9px}.upload.has{min-height:47px;padding:7px 9px}.thumbs{gap:4px}.thumb img{height:42px}.style-button{min-height:52px;padding:5px;gap:6px}.style-button img{width:54px;height:38px}.style-copy strong{font-size:9px}.style-copy span{font-size:8px}.style-chevron{font-size:14px}.generate{height:35px;font-size:10px}.micro-note{font-size:8px}.sidebar-spacer{display:none}.sidebar-bottom{grid-column:1/-1;padding:7px 1px 0;display:flex;align-items:center;justify-content:space-between;gap:8px}.service-row{flex:1}.task-options{gap:7px}.connection{display:none}.workspace{min-height:58vh;padding:0 12px 12px}.workspace-toolbar{height:42px}.workspace-location{font-size:9px}.install-btn{height:25px;font-size:9px}.canvas-region{min-height:270px}.canvas-frame{aspect-ratio:1.25/1;border-radius:7px}.result-actions{opacity:1}.history-area{margin-top:11px}.history button{width:78px;flex-basis:78px}.history img{height:38px}.gallery{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px;gap:7px}.dialog-head{height:48px;padding:0 12px}.dialog-head small{display:block;margin:2px 0 0}.config{padding:13px}.editor-layout{grid-template-columns:1fr}.editor-form{padding:13px}.editor-form textarea{min-height:76px}.edit-viewport{max-height:43vh}.toast{bottom:12px}}
   </style>
@@ -182,19 +209,27 @@
         <span class="brand-title">儿童摄影特色版</span>
       </div>
 
-      <section class="sidebar-group" aria-label="孩子照片">
+      <section class="sidebar-group" id="modeSection" aria-label="工作模式">
+        <div class="section-head"><span class="section-label">工作模式</span></div>
+        <div class="mode-switch" role="group" aria-label="选择工作模式">
+          <button class="mode-option active" id="layoutMode" type="button" aria-pressed="true">特色版排版</button>
+          <button class="mode-option" id="transferMode" type="button" aria-pressed="false">参考图迁移</button>
+        </div>
+      </section>
+
+      <section class="sidebar-group" id="photoSection" aria-label="孩子照片">
         <div class="section-head"><span class="section-label">孩子照片</span></div>
         <label class="upload" id="uploadLabel" for="photos">
           <span class="upload-icon" aria-hidden="true">＋</span>
           <b>添加孩子照片</b>
-          <small>正面、侧面或 45° · 最多 3 张</small>
+          <small id="photoHelp">正面、侧面或 45° · 最多 3 张</small>
         </label>
         <input id="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple>
         <div class="thumbs" id="thumbs"></div>
         <div id="error" class="error" role="status"></div>
       </section>
 
-      <section class="sidebar-group" aria-label="参考款式">
+      <section class="sidebar-group" id="styleSection" aria-label="参考款式">
         <div class="section-head"><span class="section-label">参考款式</span><button class="section-action" id="choose" aria-haspopup="dialog">浏览全部 80 款</button></div>
         <button class="style-button" id="styleChoice" aria-haspopup="dialog" aria-label="更换参考款式">
           <img id="styleThumb" src="refs/27.jpg" alt="当前选择的参考款式 27">
@@ -203,13 +238,34 @@
         </button>
       </section>
 
+      <section class="sidebar-group hidden" id="migrationControls" aria-label="参考图迁移设置">
+        <div class="section-head"><span class="section-label">迁移设置</span></div>
+        <label class="transfer-upload" id="transferUploadLabel" for="transferReference">
+          <span class="upload-icon" aria-hidden="true">＋</span>
+          <span class="transfer-upload-copy"><b>添加参考图</b><small>上传服装、造型或背景样片</small></span>
+        </label>
+        <input id="transferReference" type="file" accept="image/jpeg,image/png,image/webp">
+        <div class="transfer-preview hidden" id="transferPreview">
+          <img id="transferThumb" alt="迁移参考图预览">
+          <span class="transfer-preview-name" id="transferName"></span>
+          <button id="transferRemove" type="button" aria-label="移除迁移参考图">×</button>
+        </div>
+        <div class="transfer-options" role="group" aria-label="选择要迁移的内容">
+          <label class="transfer-option"><input id="transferClothing" type="checkbox" checked><span class="transfer-option-copy"><b>服装</b><small>款式 · 面料 · 配色</small></span></label>
+          <label class="transfer-option"><input id="transferStyling" type="checkbox" checked><span class="transfer-option-copy"><b>造型</b><small>发型 · 发饰 · 配件</small></span></label>
+          <label class="transfer-option"><input id="transferLighting" type="checkbox" checked><span class="transfer-option-copy"><b>光影</b><small>方向 · 色温 · 明暗</small></span></label>
+          <label class="transfer-option"><input id="transferBackground" type="checkbox" checked><span class="transfer-option-copy"><b>背景</b><small>场景 · 布景 · 景深</small></span></label>
+        </div>
+        <p class="transfer-note">第一张作为原图，其余照片辅助保留人物身份。</p>
+      </section>
+
       <div class="sidebar-spacer"></div>
       <div class="sidebar-group">
         <button class="generate" id="generate" aria-describedby="connection">
           <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m10 2 1.6 5.1L17 9l-5.4 1.8L10 16l-1.6-5.2L3 9l5.4-1.9L10 2Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/><path d="m16 13 .8 2.2L19 16l-2.2.8L16 19l-.8-2.2L13 16l2.2-.8L16 13Z" fill="currentColor"/></svg>
-          生成特色版
+          <span id="generateLabel">生成特色版</span>
         </button>
-        <p class="micro-note">AI 自动生成 6–8 个美姿与整版设计</p>
+        <p class="micro-note" id="modeNote">AI 自动生成 6–8 个美姿与整版设计</p>
       </div>
 
       <div class="sidebar-bottom">
@@ -243,14 +299,15 @@
 
       <div class="canvas-region">
         <div id="referenceArea">
-          <div class="canvas-toolbar"><strong>参考款式预览</strong><span>AI 会按这个方向重新创作</span></div>
+          <div class="canvas-toolbar"><strong id="referenceTitle">参考款式预览</strong><span id="referenceDescription">AI 会按这个方向重新创作</span></div>
           <div class="canvas-frame">
             <img class="example" id="preview" src="refs/27.jpg" alt="特色版参考款式 27">
-            <span class="canvas-hint">参考款式 · 27</span>
+            <div class="reference-empty hidden" id="referenceEmpty"><strong>上传一张参考图</strong><small>选择希望迁移到原图的服装、造型或场景</small></div>
+            <span class="canvas-hint" id="canvasHint">参考款式 · 27</span>
           </div>
         </div>
         <div id="resultArea" class="hidden">
-          <div class="canvas-toolbar"><strong>生成结果</strong><span>检查人物五官与动作后再交付</span></div>
+          <div class="canvas-toolbar"><strong id="resultTitle">生成结果</strong><span>检查人物五官与动作后再交付</span></div>
           <div class="canvas-frame">
             <button id="openEditor" class="result-frame" aria-label="放大或编辑特色版"><img id="result" class="result" alt="AI 生成的儿童特色版"></button>
             <div class="result-actions"><button id="editButton" type="button">编辑</button><a id="saveImage" download="儿童特色版.png">下载</a></div>
